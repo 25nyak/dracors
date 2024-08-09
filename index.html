@@ -1,0 +1,42 @@
+Here is the `index.html` file code again:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dracors Farming DApp</title>
+  <script src="https://cdn.jsdelivr.net/npm/@ethersproject/providers@5.6.0/dist/provider.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.7.2/dist(web3.min.js"></script>
+</head>
+<body>
+  <h1>Dracors Farming DApp</h1>
+  <button id="connect-wallet">Connect Wallet</button>
+  <div id="wallet-status"></div>
+  <h2>Your Balance:</h2>
+  <div id="balance"></div>
+  <h2>Stake:</h2>
+  <input id="stake-amount" type="number" value="0" />
+  <button id="stake-btn">Stake</button>
+  <h2>Withdraw:</h2>
+  <input id="withdraw-amount" type="number" value="0" />
+  <button id="withdraw-btn">Withdraw</button>
+  <h2>Reward:</h2>
+  <button id="claim-reward-btn">Claim Reward</button>
+
+  <script>
+    const contractAddress = '0xd5E568e721A102485A96936dBe508a4D637004e4';
+    const abi = [
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_dracorsToken",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+      },
+      {
+        "inputs
