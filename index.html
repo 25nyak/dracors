@@ -1,178 +1,86 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dracors Farming DApp</title>
-  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-</head>
-<body>
-  <h1>Dracors Farming DApp</h1>
-  <button id="connect-wallet">Connect Wallet</button>
-  <div id="wallet-status"></div>
-  <h2>Your Balance:</h2>
-  <div id="balance"></div>
-  <h2>Stake:</h2>
-  <input id="stake-amount" type="number" value="0" />
-  <button id="stake-btn">Stake</button>
-  <h2>Withdraw:</h2>
-  <input id="withdraw-amount" type="number" value="0" />
-  <button id="withdraw-btn">Withdraw</button>
-  <h2>Reward:</h2>
-  <button id="claim-reward-btn">Claim Reward</button>
-
+  </script>
   <script>
-    const contractAddress = '0xd5E568e721A102485A96936dBe508a4D637004e4';
-    const abi = [
-      {
-        "inputs": [
-          {
-            "internalType": "address",
-            "name": "_dracorsToken",
-            "type": "address"
-          }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "constructor"
-      },
-      {
-        "inputs": [
-          {
-            "internalType": "address",
-            "name": "target",
-            "type": "address"
-          }
-        ],
-        "name": "AddressEmptyCode",
-        "type": "error"
-      },
-      {
-        "inputs": [
-          {
-            "internalType": "address",
-            "name": "account",
-            "type": "address"
-          }
-        ],
-        "name": "AddressInsufficientBalance",
-        "type": "error"
-      },
-      {
-        "inputs": [],
-        "name": "claimReward",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      {
-        "inputs": [],
-        "name": "FailedInnerCall",
-        "type": "error"
-      },
-      {
-        "inputs": [
-          {
-            "internalType": "address",
-            "name": "token",
-            "type": "address"
-          }
-        ],
-        "name": "SafeERC20FailedOperation",
-        "type": "error"
-      },
-      {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "_amount",
-            "type": "uint256"
-          }
-        ],
-        "name": "stake",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      {
-        "inputs": [],
-        "name": "updatePool",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "_amount",
-            "type": "uint256"
-          }
-        ],
-        "name": "withdraw",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      {
-        "inputs": [],
-        "name": "pool",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "accRewardPerShare",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "lastUpdateBlock",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-      },
-      {
-        "inputs": [],
-        "name": "rewardPerBlock",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-      },
-      {
-        "inputs": [],
-        "name": "rewardToken",
-        "outputs": [
-          {
-            "internalType": "contract Dracors",
-            "name": "",
-            "type": "address"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-      },
-      {
-        "inputs": [],
-        "name": "startBlock",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-      },
-      {
-        "inputs": [],
-        "name": "totalStaked",
-        "outputs": [
-          {
-            "internal
+    let web3;
+    let contract;
+    let accounts;
+
+    // Function to connect to the wallet
+    async function connectWallet() {
+      if (window.ethereum) {
+        try {
+          accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          web3 = new Web3(window.ethereum);
+          document.getElementById('wallet-status').innerText = `Connected: ${accounts[0]}`;
+          contract = new web3.eth.Contract(abi, contractAddress);
+          getBalance();
+        } catch (error) {
+          console.error('User denied account access', error);
+        }
+      } else {
+        alert('Please install MetaMask!');
+      }
+    }
+
+    // Function to get and display balance
+    async function getBalance() {
+      if (accounts && contract) {
+        try {
+          const balance = await contract.methods.totalStaked().call({ from: accounts[0] });
+          document.getElementById('balance').innerText = `${web3.utils.fromWei(balance, 'ether')} Tokens`;
+        } catch (error) {
+          console.error('Error fetching balance', error);
+        }
+      }
+    }
+
+    // Function to stake tokens
+    async function stakeTokens() {
+      const amount = document.getElementById('stake-amount').value;
+      if (amount > 0) {
+        try {
+          await contract.methods.stake(web3.utils.toWei(amount, 'ether')).send({ from: accounts[0] });
+          alert('Tokens staked successfully!');
+          getBalance();
+        } catch (error) {
+          console.error('Error staking tokens', error);
+        }
+      } else {
+        alert('Please enter a valid amount to stake.');
+      }
+    }
+
+    // Function to withdraw tokens
+    async function withdrawTokens() {
+      const amount = document.getElementById('withdraw-amount').value;
+      if (amount > 0) {
+        try {
+          await contract.methods.withdraw(web3.utils.toWei(amount, 'ether')).send({ from: accounts[0] });
+          alert('Tokens withdrawn successfully!');
+          getBalance();
+        } catch (error) {
+          console.error('Error withdrawing tokens', error);
+        }
+      } else {
+        alert('Please enter a valid amount to withdraw.');
+      }
+    }
+
+    // Function to claim rewards
+    async function claimRewards() {
+      try {
+        await contract.methods.claimReward().send({ from: accounts[0] });
+        alert('Rewards claimed successfully!');
+        getBalance();
+      } catch (error) {
+        console.error('Error claiming rewards', error);
+      }
+    }
+
+    // Event listeners
+    document.getElementById('connect-wallet').addEventListener('click', connectWallet);
+    document.getElementById('stake-btn').addEventListener('click', stakeTokens);
+    document.getElementById('withdraw-btn').addEventListener('click', withdrawTokens);
+    document.getElementById('claim-reward-btn').addEventListener('click', claimRewards);
+  </script>
+</body>
+</html>
