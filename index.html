@@ -1,86 +1,89 @@
-2  </script>
-  <script>
-    let web3;
-    let contract;
-    let accounts;
-
-    // Function to connect to the wallet
-    async function connectWallet() {
-      if (window.ethereum) {
+ <body>
+    <h1>Staking DApp</h1>
+    <button id="connect-wallet">Connect Wallet</button>
+    <p id="wallet-status"></p>
+    <p id="balance"></p>
+    <input type="number" id="stake-amount" placeholder="Enter amount to stake" />
+    <button id="stake-btn">Stake Tokens</button>
+    <input type="number" id="withdraw-amount" placeholder="Enter amount to withdraw" />
+    <button id="withdraw-btn">Withdraw Tokens</button>
+    <button id="claim-reward-btn">Claim Rewards</button>
+    <script>
+      let web3;
+      let contract;
+      let accounts;
+      // Function to connect to the wallet
+      async function connectWallet() {
+        if (window.ethereum) {
+          try {
+            accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            web3 = new Web3(window.ethereum);
+            document.getElementById('wallet-status').innerText = Connected: ${accounts[0]};
+            contract = new web3.eth.Contract(abi, contractAddress);
+            getBalance();
+          } catch (error) {
+            console.error('User denied account access', error);
+          }
+        } else {
+          alert('Please install MetaMask!');
+        }
+      }
+      // Function to get and display balance
+      async function getBalance() {
+        if (accounts && contract) {
+          try {
+            const balance = await contract.methods.totalStaked().call({ from: accounts[0] });
+            document.getElementById('balance').innerText = ${web3.utils.fromWei(balance, 'ether')} Tokens;
+          } catch (error) {
+            console.error('Error fetching balance', error);
+          }
+        }
+      }
+      // Function to stake tokens
+      async function stakeTokens() {
+        const amount = document.getElementById('stake-amount').value;
+        if (amount > 0) {
+          try {
+            await contract.methods.stake(web3.utils.toWei(amount, 'ether')).send({ from: accounts[0] });
+            alert('Tokens staked successfully!');
+            getBalance();
+          } catch (error) {
+            console.error('Error staking tokens', error);
+          }
+        } else {
+          alert('Please enter a valid amount to stake.');
+        }
+      }
+      // Function to withdraw tokens
+      async function withdrawTokens() {
+        const amount = document.getElementById('withdraw-amount').value;
+        if (amount > 0) {
+          try {
+            await contract.methods.withdraw(web3.utils.toWei(amount, 'ether')).send({ from: accounts[0] });
+            alert('Tokens withdrawn successfully!');
+            getBalance();
+          } catch (error) {
+            console.error('Error withdrawing tokens', error);
+          }
+        } else {
+          alert('Please enter a valid amount to withdraw.');
+        }
+      }
+      // Function to claim rewards
+      async function claimRewards() {
         try {
-          accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-          web3 = new Web3(window.ethereum);
-          document.getElementById('wallet-status').innerText = `Connected: ${accounts[0]}`;
-          contract = new web3.eth.Contract(abi, contractAddress);
+          await contract.methods.claimReward().send({ from: accounts[0] });
+          alert('Rewards claimed successfully!');
           getBalance();
         } catch (error) {
-          console.error('User denied account access', error);
-        }
-      } else {
-        alert('Please install MetaMask!');
-      }
-    }
-
-    // Function to get and display balance
-    async function getBalance() {
-      if (accounts && contract) {
-        try {
-          const balance = await contract.methods.totalStaked().call({ from: accounts[0] });
-          document.getElementById('balance').innerText = `${web3.utils.fromWei(balance, 'ether')} Tokens`;
-        } catch (error) {
-          console.error('Error fetching balance', error);
+          console.error('Error claiming rewards', error);
         }
       }
-    }
-
-    // Function to stake tokens
-    async function stakeTokens() {
-      const amount = document.getElementById('stake-amount').value;
-      if (amount > 0) {
-        try {
-          await contract.methods.stake(web3.utils.toWei(amount, 'ether')).send({ from: accounts[0] });
-          alert('Tokens staked successfully!');
-          getBalance();
-        } catch (error) {
-          console.error('Error staking tokens', error);
-        }
-      } else {
-        alert('Please enter a valid amount to stake.');
-      }
-    }
-
-    // Function to withdraw tokens
-    async function withdrawTokens() {
-      const amount = document.getElementById('withdraw-amount').value;
-      if (amount > 0) {
-        try {
-          await contract.methods.withdraw(web3.utils.toWei(amount, 'ether')).send({ from: accounts[0] });
-          alert('Tokens withdrawn successfully!');
-          getBalance();
-        } catch (error) {
-          console.error('Error withdrawing tokens', error);
-        }
-      } else {
-        alert('Please enter a valid amount to withdraw.');
-      }
-    }
-
-    // Function to claim rewards
-    async function claimRewards() {
-      try {
-        await contract.methods.claimReward().send({ from: accounts[0] });
-        alert('Rewards claimed successfully!');
-        getBalance();
-      } catch (error) {
-        console.error('Error claiming rewards', error);
-      }
-    }
-
-    // Event listeners
-    document.getElementById('connect-wallet').addEventListener('click', connectWallet);
-    document.getElementById('stake-btn').addEventListener('click', stakeTokens);
-    document.getElementById('withdraw-btn').addEventListener('click', withdrawTokens);
-    document.getElementById('claim-reward-btn').addEventListener('click', claimRewards);
-  </script>
-</body>
+      // Event listeners
+      document.getElementById('connect-wallet').addEventListener('click', connectWallet);
+      document.getElementById('stake-btn').addEventListener('click', stakeTokens);
+      document.getElementById('withdraw-btn').addEventListener('click', withdrawTokens);
+      document.getElementById('claim-reward-btn').addEventListener('click', claimRewards);
+    </script>
+  </body>
 </html>
