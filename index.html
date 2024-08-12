@@ -191,11 +191,13 @@
         try {
           accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
           web3 = new Web3(window.ethereum);
+          console.log('Connected accounts:', accounts);  // Debugging log
           document.getElementById('wallet-status').innerText = `Connected: ${accounts[0]}`;
           contract = new web3.eth.Contract(abi, contractAddress);
           getBalance();
         } catch (error) {
           console.error('User denied account access', error);
+          alert('Failed to connect wallet. Please try again.');
         }
       } else {
         alert('Please install MetaMask!');
@@ -248,12 +250,18 @@
 
     // Function to claim rewards
     async function claimRewards() {
-      try {
-        await contract.methods.claimReward().send({ from: accounts[0] });
-        alert('Rewards claimed successfully!');
-        getBalance();
-      } catch (error) {
-        console.error('Error claiming rewards', error);
+      if (accounts && contract) {
+        try {
+          console.log('Attempting to claim rewards...');  // Debugging log
+          await contract.methods.claimReward().send({ from: accounts[0] });
+          alert('Rewards claimed successfully!');
+          getBalance();
+        } catch (error) {
+          console.error('Error claiming rewards', error);
+          alert('Failed to claim rewards. Please check the console for more details.');
+        }
+      } else {
+        alert('Please connect your wallet first.');
       }
     }
 
