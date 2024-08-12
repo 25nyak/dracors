@@ -22,27 +22,87 @@
         let contract;
         let accounts;
         const contractAddress = "0x2061e71089D24E3F15158955c2FdEdb07bB2A1db"; // Your deployed contract address
-        const abi = [
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "_usdcAddress",
-                        "type": "address"
-                    }
-                ],
-                "stateMutability": "nonpayable",
-                "type": "constructor"
-            },
-            {
-                "inputs": [],
-                "name": "claimReward",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "
+        const abi = [ /* ABI from your contract */ ];
+
+        async function connectWallet() {
+            if (window.ethereum) {
+                try {
+                    console.log('Requesting account access...');
+                    accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    web3 = new Web3(window.ethereum);
+                    document.getElementById('wallet-status').innerText = `Connected: ${accounts[0]}`;
+                    console.log('Connected to wallet:', accounts[0]);
+                    contract = new web3.eth.Contract(abi, contractAddress);
+                    getBalance();
+                } catch (error) {
+                    console.error('Failed to connect to wallet:', error);
+                    alert('Failed to connect to wallet. Please try again.');
+                }
+            } else {
+                alert('Please install MetaMask!');
+            }
+        }
+
+        async function getBalance() {
+            if (accounts && contract) {
+                try {
+                    console.log('Fetching balance...');
+                    const balance = await contract.methods.getBalance(accounts[0]).call();
+                    document.getElementById('balance').innerText = `${web3.utils.fromWei(balance, 'mwei')} USDC`;
+                    console.log('Balance:', web3.utils.fromWei(balance, 'mwei'), 'USDC');
+                } catch (error) {
+                    console.error('Error fetching balance:', error);
+                }
+            }
+        }
+
+        async function stakeTokens() {
+            const amount = document.getElementById('stake-amount').value;
+            if (amount > 0) {
+                try {
+                    console.log('Staking tokens:', amount);
+                    await contract.methods.stake(web3.utils.toWei(amount, 'mwei')).send({ from: accounts[0] });
+                    alert('Tokens staked successfully!');
+                    getBalance();
+                } catch (error) {
+                    console.error('Error staking tokens:', error);
+                }
+            } else {
+                alert('Please enter a valid amount to stake.');
+            }
+        }
+
+        async function withdrawTokens() {
+            const amount = document.getElementById('withdraw-amount').value;
+            if (amount > 0) {
+                try {
+                    console.log('Withdrawing tokens:', amount);
+                    await contract.methods.withdraw(web3.utils.toWei(amount, 'mwei')).send({ from: accounts[0] });
+                    alert('Tokens withdrawn successfully!');
+                    getBalance();
+                } catch (error) {
+                    console.error('Error withdrawing tokens:', error);
+                }
+            } else {
+                alert('Please enter a valid amount to withdraw.');
+            }
+        }
+
+        async function claimRewards() {
+            try {
+                console.log('Claiming rewards...');
+                await contract.methods.claimReward().send({ from: accounts[0] });
+                alert('Rewards claimed successfully!');
+                getBalance();
+            } catch (error) {
+                console.error('Error claiming rewards:', error);
+            }
+        }
+
+        document.getElementById('connect-wallet').addEventListener('click', connectWallet);
+        document.getElementById('stake-btn').addEventListener('click', stakeTokens);
+        document.getElementById('withdraw-btn').addEventListener('click', withdrawTokens);
+        document.getElementById('claim-reward-btn').addEventListener('click', claimRewards);
+    </script>
+</body>
+</html>
