@@ -13,123 +13,131 @@
     <h2>USDC Token Balance:</h2>
     <p id="usdc-balance">Loading...</p>
     
-    <h2>Your Balance:</h2>
-    <p id="balance">Loading...</p>
+    <h2>Your Staked Balance:</h2>
+    <p id="staked-balance">Loading...</p>
     
-    <h2>Stake:</h2>
+    <h2>Your Earned Rewards:</h2>
+    <p id="reward-balance">Loading...</p>
+
+    <h2>Stake USDC:</h2>
     <input type="number" id="stake-amount" placeholder="Enter amount to stake" />
     <button id="stake-btn">Stake Tokens</button>
-    
-    <h2>Withdraw:</h2>
+
+    <h2>Withdraw USDC:</h2>
     <input type="number" id="withdraw-amount" placeholder="Enter amount to withdraw" />
     <button id="withdraw-btn">Withdraw Tokens</button>
-    
+
     <h2>Claim Rewards:</h2>
     <button id="claim-reward-btn">Claim Rewards</button>
-    
-    <h2>Rewards Earned:</h2>
-    <p id="rewards-earned">Loading...</p>
-    
-    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
     <script>
+        const contractAddress = '0x2061e71089D24E3F15158955c2FdEdb07bB2A1db';
+        const usdcTokenAddress = 'YOUR_USDC_CONTRACT_ADDRESS_HERE'; // Update with your USDC contract address
+
+        const abi = [/* ... ABI from your previous message ... */];
+
         let web3;
         let contract;
         let accounts;
-        const contractAddress = "0x2061e71089D24E3F15158955c2FdEdb07bB2A1db"; // Your deployed contract address
-        const abi = [ /* ABI from your contract */ ];
-        const usdcAddress = "0x..."; // Replace with your USDC token address
-        const usdcAbi = [ /* USDC ABI */ ];
 
+        // Function to connect to the wallet
         async function connectWallet() {
             if (window.ethereum) {
                 try {
-                    console.log('Requesting account access...');
                     accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     web3 = new Web3(window.ethereum);
                     document.getElementById('wallet-status').innerText = `Connected: ${accounts[0]}`;
-                    console.log('Connected to wallet:', accounts[0]);
                     contract = new web3.eth.Contract(abi, contractAddress);
-                    usdcToken = new web3.eth.Contract(usdcAbi, usdcAddress);
-                    getBalances();
+
+                    await loadBalances();
                 } catch (error) {
-                    console.error('Failed to connect to wallet:', error);
-                    alert('Failed to connect to wallet. Please try again.');
+                    console.error('User denied account access', error);
                 }
             } else {
                 alert('Please install MetaMask!');
             }
         }
 
-        async function getBalances() {
-            if (accounts && contract) {
-                try {
-                    console.log('Fetching balances...');
-                    const usdcBalance = await usdcToken.methods.balanceOf(accounts[0]).call();
-                    const stakedBalance = await contract.methods.getBalance(accounts[0]).call();
-                    const rewardBalance = await contract.methods.getRewardBalance(accounts[0]).call();
-                    
-                    document.getElementById('usdc-balance').innerText = `${web3.utils.fromWei(usdcBalance, 'mwei')} USDC`;
-                    document.getElementById('balance').innerText = `${web3.utils.fromWei(stakedBalance, 'mwei')} USDC Staked`;
-                    document.getElementById('rewards-earned').innerText = `${web3.utils.fromWei(rewardBalance, 'mwei')} USDC Rewards`;
-                    
-                    console.log('USDC Balance:', web3.utils.fromWei(usdcBalance, 'mwei'), 'USDC');
-                    console.log('Staked Balance:', web3.utils.fromWei(stakedBalance, 'mwei'), 'USDC');
-                    console.log('Rewards Earned:', web3.utils.fromWei(rewardBalance, 'mwei'), 'USDC');
-                } catch (error) {
-                    console.error('Error fetching balances:', error);
-                }
+        // Function to load balances and update the UI
+        async function loadBalances() {
+            try {
+                const usdcContract = new web3.eth.Contract([{
+                    "constant": true,
+                    "inputs": [{"name": "owner", "type": "address"}],
+                    "name": "balanceOf",
+                    "outputs": [{"name": "balance", "type": "uint256"}],
+                    "type": "function"
+                }], usdcTokenAddress);
+
+                const usdcBalance = await usdcContract.methods.balanceOf(accounts[0]).call();
+                document.getElementById('usdc-balance').innerText = web3.utils.fromWei(usdcBalance, 'mwei') + ' USDC';
+
+                const stakedBalance = await contract.methods.getBalance(accounts[0]).call();
+                document.getElementById('staked-balance').innerText = web3.utils.fromWei(stakedBalance, 'mwei') + ' USDC';
+
+                const rewardBalance = await contract.methods.getRewardBalance(accounts[0]).call();
+                document.getElementById('reward-balance').innerText = web3.utils.fromWei(rewardBalance, 'mwei') + ' USDC';
+            } catch (error) {
+                console.error('Error loading balances', error);
             }
         }
 
+        // Function to stake tokens
         async function stakeTokens() {
             const amount = document.getElementById('stake-amount').value;
             if (amount > 0) {
                 try {
-                    console.log('Staking tokens:', amount);
-                    const amountInWei = web3.utils.toWei(amount, 'mwei');
-                    
-                    // Approve the contract to spend USDC tokens
-                    await usdcToken.methods.approve(contractAddress, amountInWei).send({ from: accounts[0] });
-                    
-                    // Stake the tokens
-                    await contract.methods.stake(amountInWei).send({ from: accounts[0] });
+                    const amountWei = web3.utils.toWei(amount, 'mwei');
+                    const usdcContract = new web3.eth.Contract([{
+                        "constant": false,
+                        "inputs": [{"name": "spender", "type": "address"}, {"name": "amount", "type": "uint256"}],
+                        "name": "approve",
+                        "outputs": [{"name": "", "type": "bool"}],
+                        "type": "function"
+                    }], usdcTokenAddress);
+
+                    await usdcContract.methods.approve(contractAddress, amountWei).send({ from: accounts[0] });
+
+                    await contract.methods.stake(amountWei).send({ from: accounts[0] });
                     alert('Tokens staked successfully!');
-                    getBalances();
+                    await loadBalances();
                 } catch (error) {
-                    console.error('Error staking tokens:', error);
+                    console.error('Error staking tokens', error);
                 }
             } else {
                 alert('Please enter a valid amount to stake.');
             }
         }
 
+        // Function to withdraw tokens
         async function withdrawTokens() {
             const amount = document.getElementById('withdraw-amount').value;
             if (amount > 0) {
                 try {
-                    console.log('Withdrawing tokens:', amount);
                     await contract.methods.withdraw(web3.utils.toWei(amount, 'mwei')).send({ from: accounts[0] });
                     alert('Tokens withdrawn successfully!');
-                    getBalances();
+                    await loadBalances();
                 } catch (error) {
-                    console.error('Error withdrawing tokens:', error);
+                    console.error('Error withdrawing tokens', error);
                 }
             } else {
                 alert('Please enter a valid amount to withdraw.');
             }
         }
 
+        // Function to claim rewards
         async function claimRewards() {
             try {
-                console.log('Claiming rewards...');
                 await contract.methods.claimReward().send({ from: accounts[0] });
                 alert('Rewards claimed successfully!');
-                getBalances();
+                await loadBalances();
             } catch (error) {
-                console.error('Error claiming rewards:', error);
+                console.error('Error claiming rewards', error);
             }
         }
 
+        // Event listeners
         document.getElementById('connect-wallet').addEventListener('click', connectWallet);
         document.getElementById('stake-btn').addEventListener('click', stakeTokens);
         document.getElementById('withdraw-btn').addEventListener('click', withdrawTokens);
