@@ -34,11 +34,11 @@
     <script>
         const contractAddress = '0x2061e71089D24E3F15158955c2FdEdb07bB2A1db';
         const usdcTokenAddress = 'YOUR_USDC_CONTRACT_ADDRESS_HERE'; // Update with your USDC contract address
-
-        const abi = [/* ... ABI from your previous message ... */];
+        const abi = [...]; // Replace with your contract ABI
 
         let web3;
         let contract;
+        let usdcContract;
         let accounts;
 
         // Function to connect to the wallet
@@ -49,6 +49,13 @@
                     web3 = new Web3(window.ethereum);
                     document.getElementById('wallet-status').innerText = `Connected: ${accounts[0]}`;
                     contract = new web3.eth.Contract(abi, contractAddress);
+                    usdcContract = new web3.eth.Contract([{
+                        "constant": true,
+                        "inputs": [{"name": "owner", "type": "address"}],
+                        "name": "balanceOf",
+                        "outputs": [{"name": "balance", "type": "uint256"}],
+                        "type": "function"
+                    }], usdcTokenAddress);
 
                     await loadBalances();
                 } catch (error) {
@@ -62,22 +69,20 @@
         // Function to load balances and update the UI
         async function loadBalances() {
             try {
-                const usdcContract = new web3.eth.Contract([{
-                    "constant": true,
-                    "inputs": [{"name": "owner", "type": "address"}],
-                    "name": "balanceOf",
-                    "outputs": [{"name": "balance", "type": "uint256"}],
-                    "type": "function"
-                }], usdcTokenAddress);
-
+                console.log('Loading balances...');
                 const usdcBalance = await usdcContract.methods.balanceOf(accounts[0]).call();
+                console.log(`USDC balance: ${usdcBalance}`);
                 document.getElementById('usdc-balance').innerText = web3.utils.fromWei(usdcBalance, 'mwei') + ' USDC';
 
                 const stakedBalance = await contract.methods.getBalance(accounts[0]).call();
+                console.log(`Staked balance: ${stakedBalance}`);
                 document.getElementById('staked-balance').innerText = web3.utils.fromWei(stakedBalance, 'mwei') + ' USDC';
 
                 const rewardBalance = await contract.methods.getRewardBalance(accounts[0]).call();
+                console.log(`Reward balance: ${rewardBalance}`);
                 document.getElementById('reward-balance').innerText = web3.utils.fromWei(rewardBalance, 'mwei') + ' USDC';
+
+                console.log('Balances loaded successfully!');
             } catch (error) {
                 console.error('Error loading balances', error);
             }
@@ -89,16 +94,7 @@
             if (amount > 0) {
                 try {
                     const amountWei = web3.utils.toWei(amount, 'mwei');
-                    const usdcContract = new web3.eth.Contract([{
-                        "constant": false,
-                        "inputs": [{"name": "spender", "type": "address"}, {"name": "amount", "type": "uint256"}],
-                        "name": "approve",
-                        "outputs": [{"name": "", "type": "bool"}],
-                        "type": "function"
-                    }], usdcTokenAddress);
-
                     await usdcContract.methods.approve(contractAddress, amountWei).send({ from: accounts[0] });
-
                     await contract.methods.stake(amountWei).send({ from: accounts[0] });
                     alert('Tokens staked successfully!');
                     await loadBalances();
@@ -115,7 +111,8 @@
             const amount = document.getElementById('withdraw-amount').value;
             if (amount > 0) {
                 try {
-                    await contract.methods.withdraw(web3.utils.toWei(amount, 'mwei')).send({ from: accounts[0] });
+                    const amountWei = web3.utils.toWei(amount, 'mwei');
+                    await contract.methods.withdraw(amountWei).send({ from: accounts[0] });
                     alert('Tokens withdrawn successfully!');
                     await loadBalances();
                 } catch (error) {
