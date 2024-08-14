@@ -57,9 +57,10 @@
                         "type": "function"
                     }], usdcTokenAddress);
 
+                    console.log('Wallet connected, loading balances...');
                     await loadBalances();
                 } catch (error) {
-                    console.error('User denied account access', error);
+                    console.error('Error connecting wallet or loading balances:', error);
                 }
             } else {
                 alert('Please install MetaMask!');
@@ -69,7 +70,6 @@
         // Function to load balances and update the UI
         async function loadBalances() {
             try {
-                console.log('Loading balances...');
                 const usdcBalance = await usdcContract.methods.balanceOf(accounts[0]).call();
                 console.log(`USDC balance: ${usdcBalance}`);
                 document.getElementById('usdc-balance').innerText = web3.utils.fromWei(usdcBalance, 'mwei') + ' USDC';
@@ -85,6 +85,7 @@
                 console.log('Balances loaded successfully!');
             } catch (error) {
                 console.error('Error loading balances', error);
+                alert('Failed to load balances. Please check the console for details.');
             }
         }
 
