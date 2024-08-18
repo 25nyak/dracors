@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>USDC Staking DApp</title>
+  <title>Dracors USDC Staking DApp</title>
 </head>
 <body>
-  <h1>USDC Staking DApp</h1>
+  <h1>Dracors USDC Staking DApp</h1>
   <button id="connect-wallet">Connect Wallet</button>
   <p id="wallet-status"></p>
 
@@ -36,36 +36,42 @@
   <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
 
   <script>
-    const contractAddress = '0x2061e71089D24E3F15158955c2FdEdb07bB2A1db';
-    const usdcTokenAddress = 'YOUR_USDC_CONTRACT_ADDRESS_HERE'; // Update with your USDC contract address
-    const abi = [
-      // ... the provided ABI ...
-    ];
+    const contractAddress = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
+    const usdcTokenAddress = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'; // USDC contract address on Polygon mainnet
+    const abi = [ /* ABI from earlier, truncated for brevity */ ];
 
     let web3;
     let contract;
     let usdcContract;
     let accounts;
 
+    document.getElementById('connect-wallet').onclick = connectWallet;
+
     // Function to connect to the wallet
     async function connectWallet() {
-      try {
-        accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        web3 = new Web3(window.ethereum);
-        document.getElementById('wallet-status').innerText = `Connected: ${accounts[0]}`;
-        contract = new web3.eth.Contract(abi, contractAddress);
-        usdcContract = new web3.eth.Contract([{
-          "constant": true,
-          "inputs": [{"name": "owner", "type": "address"}],
-          "name": "balanceOf",
-          "outputs": [{"name": "balance", "type": "uint256"}],
-          "type": "function"
-        }], usdcTokenAddress);
+      if (window.ethereum) {
+        try {
+          accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          web3 = new Web3(window.ethereum);
+          document.getElementById('wallet-status').innerText = `Connected: ${accounts[0]}`;
+          contract = new web3.eth.Contract(abi, contractAddress);
+          usdcContract = new web3.eth.Contract([
+            {
+              "constant": true,
+              "inputs": [{"name": "owner", "type": "address"}],
+              "name": "balanceOf",
+              "outputs": [{"name": "balance", "type": "uint256"}],
+              "type": "function"
+            }
+          ], usdcTokenAddress);
 
-        await loadBalances();
-      } catch (error) {
-        console.error('User denied account access', error);
-        document.getElementById('wallet-status').innerText = 'Connection failed';
+          await loadBalances();
+        } catch (error) {
+          console.error('User denied account access', error);
+          document.getElementById('wallet-status').innerText = 'Connection failed';
+        }
+      } else {
+        alert('Please install MetaMask!');
       }
     }
 
@@ -73,97 +79,67 @@
     async function loadBalances() {
       try {
         console.log('Attempting to load balances...');
+        
+        // Load USDC Balance
         const usdcBalance = await usdcContract.methods.balanceOf(accounts[0]).call();
-        console.log(`USDC balance: ${usdcBalance}`);
-        document.getElementById('usdc-balance').innerText = web3.utils.fromWei(usdcBalance, 'mwei') + ' USDC';
-
+        console.log(`USDC balance in Wei: ${usdcBalance}`);
+        document.getElementById('usdc-balance').innerText = (usdcBalance / (10 ** 6)) + ' USDC'; // Adjust for 6 decimals
+        
+        // Load Staked Balance
         const stakedBalance = await contract.methods.getBalance(accounts[0]).call();
-        console.log(`Staked balance: ${stakedBalance}`);
-        document.getElementById('staked-balance').innerText = web3.utils.fromWei(stakedBalance, 'mwei') + ' USDC';
-
+        console.log(`Staked balance in Wei: ${stakedBalance}`);
+        document.getElementById('staked-balance').innerText = (stakedBalance / (10 ** 6)) + ' USDC'; // Adjust for 6 decimals
+        
+        // Load Reward Balance
         const rewardBalance = await contract.methods.getRewardBalance(accounts[0]).call();
-        console.log(`Reward balance: ${rewardBalance}`);
-        document.getElementById('reward-balance').innerText = web3.utils.fromWei(rewardBalance, 'mwei') + ' USDC';
-
+        console.log(`Reward balance in Wei: ${rewardBalance}`);
+        document.getElementById('reward-balance').innerText = (rewardBalance / (10 ** 6)) + ' USDC'; // Adjust for 6 decimals
+        
         console.log('Balances loaded successfully!');
       } catch (error) {
-        console.error('Error loading balances', error);
+        console.error('Failed to load balances', error);
       }
     }
 
-    // Function to stake tokens
-    async function stakeTokens() {
-      document.getElementById('stake-status').innerText = 'Staking...';
+    document.getElementById('stake-btn').onclick = async function () {
       const amount = document.getElementById('stake-amount').value;
-      if (amount > 0) {
-        try {
-          console.log('Staking tokens...');
-          const amountWei = web3.utils.toWei(amount, 'mwei');
-          await usdcContract.methods.approve(contractAddress, amountWei).send({ from: accounts[0] });
-          await contract.methods.stake(amountWei).send({ from: accounts[0] });
-          document.getElementById('stake-status').innerText = 'Tokens staked successfully!';
-          await loadBalances();
-        } catch (error) {
-          console.error('Error staking tokens', error);
-          document.getElementById('stake-status').innerText = 'Staking failed. Please check console for details.';
-        }
-      } else {
-        alert('Please enter a valid amount to stake.');
-      }
-    }
+      const amountInWei = web3.utils.toWei(amount, 'mwei'); // Convert amount to Wei
 
-    // Function to withdraw tokens
-    async function withdrawTokens() {
-      document.getElementById('withdraw-status').innerText = 'Withdrawing...';
-      const amount = document.getElementById('withdraw-amount').value;
-      if (amount > 0) {
-        try {
-          const stakedBalance = await contract.methods.getBalance(accounts[0]).call();
-          const amountWei = web3.utils.toWei(amount, 'mwei');
-
-          if (stakedBalance >= amountWei) {
-            console.log('Withdrawing tokens...');
-            await contract.methods.withdraw(amountWei).send({ from: accounts[0] });
-            document.getElementById('withdraw-status').innerText = 'Tokens withdrawn successfully!';
-            await loadBalances();
-          } else {
-            alert('Insufficient staked balance. Please enter a lower amount.');
-          }
-        } catch (error) {
-          console.error('Error withdrawing tokens', error);
-          document.getElementById('withdraw-status').innerText = 'Withdrawal failed. Please check console for details.';
-        }
-      } else {
-        alert('Please enter a valid amount to withdraw.');
-      }
-    }
-
-    // Function to claim rewards
-    async function claimRewards() {
-      document.getElementById('claim-status').innerText = 'Claiming rewards...';
       try {
-        const rewardBalance = await contract.methods.getRewardBalance(accounts[0]).call();
-        const amountWei = web3.utils.toWei(rewardBalance, 'mwei');
-
-        if (amountWei > 0) {
-          console.log('Claiming rewards...');
-          await contract.methods.claimReward().send({ from: accounts[0] });
-          document.getElementById('claim-status').innerText = 'Rewards claimed successfully!';
-          await loadBalances();
-        } else {
-          alert('No rewards to claim.');
-        }
+        await usdcContract.methods.approve(contractAddress, amountInWei).send({ from: accounts[0] });
+        await contract.methods.stake(amountInWei).send({ from: accounts[0] });
+        document.getElementById('stake-status').innerText = 'Stake successful!';
+        await loadBalances(); // Refresh balances after staking
       } catch (error) {
-        console.error('Error claiming rewards', error);
-        document.getElementById('claim-status').innerText = 'Claiming rewards failed. Please check console for details.';
+        console.error('Stake failed', error);
+        document.getElementById('stake-status').innerText = 'Stake failed!';
       }
-    }
+    };
 
-    // Event listeners
-    document.getElementById('connect-wallet').addEventListener('click', connectWallet);
-    document.getElementById('stake-btn').addEventListener('click', stakeTokens);
-    document.getElementById('withdraw-btn').addEventListener('click', withdrawTokens);
-    document.getElementById('claim-reward-btn').addEventListener('click', claimRewards);
+    document.getElementById('withdraw-btn').onclick = async function () {
+      const amount = document.getElementById('withdraw-amount').value;
+      const amountInWei = web3.utils.toWei(amount, 'mwei'); // Convert amount to Wei
+
+      try {
+        await contract.methods.withdraw(amountInWei).send({ from: accounts[0] });
+        document.getElementById('withdraw-status').innerText = 'Withdraw successful!';
+        await loadBalances(); // Refresh balances after withdrawal
+      } catch (error) {
+        console.error('Withdraw failed', error);
+        document.getElementById('withdraw-status').innerText = 'Withdraw failed!';
+      }
+    };
+
+    document.getElementById('claim-reward-btn').onclick = async function () {
+      try {
+        await contract.methods.claimReward().send({ from: accounts[0] });
+        document.getElementById('claim-status').innerText = 'Claim successful!';
+        await loadBalances(); // Refresh balances after claiming reward
+      } catch (error) {
+        console.error('Claim failed', error);
+        document.getElementById('claim-status').innerText = 'Claim failed!';
+      }
+    };
   </script>
 </body>
-  </html>
+</html>
