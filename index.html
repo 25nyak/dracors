@@ -4,337 +4,143 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dracors USDC Staking DApp</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    p, input, button {
+      font-size: 16px;
+    }
+    input {
+      width: calc(100% - 22px);
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      width: 100%;
+      padding: 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #wallet-status, .status-message {
+      text-align: center;
+      font-weight: bold;
+    }
+    .status-message {
+      margin-top: 10px;
+      color: green;
+    }
+  </style>
 </head>
 <body>
-  <h1>Dracors USDC Staking DApp</h1>
-  <button id="connect-wallet">Connect Wallet</button>
-  <p id="wallet-status"></p>
+  <div class="container">
+    <h1>Dracors USDC Staking DApp</h1>
+    <button id="connect-wallet">Connect Wallet</button>
+    <p id="wallet-status">Not Connected</p>
 
-  <h2>USDC Token Balance:</h2>
-  <p id="usdc-balance">Loading...</p>
+    <h2>USDC Token Balance:</h2>
+    <p id="usdc-balance">Loading...</p>
 
-  <h2>Your Staked Balance:</h2>
-  <p id="staked-balance">Loading...</p>
+    <h2>Your Staked Balance:</h2>
+    <p id="staked-balance">Loading...</p>
 
-  <h2>Your Earned Rewards:</h2>
-  <p id="reward-balance">Loading...</p>
+    <h2>Your Earned Rewards:</h2>
+    <p id="reward-balance">Loading...</p>
 
-  <h2>Stake USDC:</h2>
-  <input type="number" id="stake-amount" placeholder="Enter amount to stake" />
-  <button id="stake-btn">Stake Tokens</button>
-  <p id="stake-status"></p>
+    <h2>Stake USDC:</h2>
+    <input type="number" id="stake-amount" placeholder="Enter amount to stake" />
+    <button id="stake-btn">Stake Tokens</button>
+    <p id="stake-status" class="status-message"></p>
 
-  <h2>Withdraw USDC:</h2>
-  <input type="number" id="withdraw-amount" placeholder="Enter amount to withdraw" />
-  <button id="withdraw-btn">Withdraw Tokens</button>
-  <p id="withdraw-status"></p>
+    <h2>Withdraw USDC:</h2>
+    <input type="number" id="withdraw-amount" placeholder="Enter amount to withdraw" />
+    <button id="withdraw-btn">Withdraw Tokens</button>
+    <p id="withdraw-status" class="status-message"></p>
 
-  <h2>Claim Rewards:</h2>
-  <button id="claim-reward-btn">Claim Rewards</button>
-  <p id="claim-status"></p>
+    <h2>Claim Rewards:</h2>
+    <button id="claim-reward-btn">Claim Rewards</button>
+    <p id="claim-status" class="status-message"></p>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-
   <script>
     const contractAddress = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
     const usdcTokenAddress = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'; // USDC contract address on Polygon mainnet
+
     const abi = [
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_usdcAddress",
-				"type": "address"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "owner",
-				"type": "address"
-			}
-		],
-		"name": "OwnableInvalidOwner",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "account",
-				"type": "address"
-			}
-		],
-		"name": "OwnableUnauthorizedAccount",
-		"type": "error"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "previousOwner",
-				"type": "address"
-			},
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "newOwner",
-				"type": "address"
-			}
-		],
-		"name": "OwnershipTransferred",
-		"type": "event"
-	},
-	{
-		"inputs": [],
-		"name": "claimReward",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "account",
-				"type": "address"
-			}
-		],
-		"name": "earned",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "account",
-				"type": "address"
-			}
-		],
-		"name": "getBalance",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "account",
-				"type": "address"
-			}
-		],
-		"name": "getRewardBalance",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "lastUpdateTime",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "owner",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "renounceOwnership",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "rewardPerToken",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "rewardPerTokenStored",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "rewardRate",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_rewardRate",
-				"type": "uint256"
-			}
-		],
-		"name": "setRewardRate",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_amount",
-				"type": "uint256"
-			}
-		],
-		"name": "stake",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "totalStaked",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "newOwner",
-				"type": "address"
-			}
-		],
-		"name": "transferOwnership",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "usdcToken",
-		"outputs": [
-			{
-				"internalType": "contract IERC20",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"name": "userInfo",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "balance",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "rewardPerTokenPaid",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "rewards",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_amount",
-				"type": "uint256"
-			}
-		],
-		"name": "withdraw",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	}
-];
+      {
+        "inputs": [
+          { "internalType": "address", "name": "_rewardToken", "type": "address" },
+          { "internalType": "address", "name": "_stakingToken", "type": "address" }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+      },
+      { "anonymous": false, "inputs": [
+          { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+          { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+        ], "name": "RewardPaid", "type": "event" 
+      },
+      { "anonymous": false, "inputs": [
+          { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+          { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+        ], "name": "Staked", "type": "event" 
+      },
+      { "anonymous": false, "inputs": [
+          { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+          { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+        ], "name": "Withdrawn", "type": "event" 
+      },
+      { "inputs": [], "name": "rewardToken", "outputs": [
+          { "internalType": "contract IERC20", "name": "", "type": "address" }
+        ], "stateMutability": "view", "type": "function" 
+      },
+      { "inputs": [{ "internalType": "address", "name": "account", "type": "address" }],
+        "name": "getRewardBalance", "outputs": [
+          { "internalType": "uint256", "name": "", "type": "uint256" }
+        ], "stateMutability": "view", "type": "function" 
+      },
+      { "inputs": [{ "internalType": "address", "name": "account", "type": "address" }],
+        "name": "getBalance", "outputs": [
+          { "internalType": "uint256", "name": "", "type": "uint256" }
+        ], "stateMutability": "view", "type": "function" 
+      },
+      { "inputs": [], "name": "stakingToken", "outputs": [
+          { "internalType": "contract IERC20", "name": "", "type": "address" }
+        ], "stateMutability": "view", "type": "function" 
+      },
+      { "inputs": [{ "internalType": "uint256", "name": "amount", "type": "uint256" }],
+        "name": "stake", "outputs": [], "stateMutability": "nonpayable", "type": "function" 
+      },
+      { "inputs": [], "name": "withdraw", "outputs": [], "stateMutability": "nonpayable", "type": "function" 
+      },
+      { "inputs": [], "name": "claimReward", "outputs": [], "stateMutability": "nonpayable", "type": "function" 
+      }
+    ];
 
     let web3;
     let contract;
@@ -342,8 +148,10 @@
     let accounts;
 
     document.getElementById('connect-wallet').onclick = connectWallet;
+    document.getElementById('stake-btn').onclick = stakeTokens;
+    document.getElementById('withdraw-btn').onclick = withdrawTokens;
+    document.getElementById('claim-reward-btn').onclick = claimRewards;
 
-    // Function to connect to the wallet
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -371,71 +179,19 @@
       }
     }
 
-    // Function to load balances and update the UI
     async function loadBalances() {
       try {
-        console.log('Attempting to load balances...');
-        
-        // Load USDC Balance
         const usdcBalance = await usdcContract.methods.balanceOf(accounts[0]).call();
-        console.log(`USDC balance in Wei: ${usdcBalance}`);
-        document.getElementById('usdc-balance').innerText = (usdcBalance / (10 ** 6)) + ' USDC'; // Adjust for 6 decimals
-        
-        // Load Staked Balance
         const stakedBalance = await contract.methods.getBalance(accounts[0]).call();
-        console.log(`Staked balance in Wei: ${stakedBalance}`);
-        document.getElementById('staked-balance').innerText = (stakedBalance / (10 ** 6)) + ' USDC'; // Adjust for 6 decimals
-        
-        // Load Reward Balance
         const rewardBalance = await contract.methods.getRewardBalance(accounts[0]).call();
-        console.log(`Reward balance in Wei: ${rewardBalance}`);
-        document.getElementById('reward-balance').innerText = (rewardBalance / (10 ** 6)) + ' USDC'; // Adjust for 6 decimals
-        
-        console.log('Balances loaded successfully!');
+
+        document.getElementById('usdc-balance').innerText = `${web3.utils.fromWei(usdcBalance)} USDC`;
+        document.getElementById('staked-balance').innerText = `${web3.utils.fromWei(stakedBalance)} USDC`;
+        document.getElementById('reward-balance').innerText = `${web3.utils.fromWei(rewardBalance)} USDC`;
       } catch (error) {
-        console.error('Failed to load balances', error);
+        console.error('Error loading balances:', error);
       }
     }
 
-    document.getElementById('stake-btn').onclick = async function () {
-      const amount = document.getElementById('stake-amount').value;
-      const amountInWei = web3.utils.toWei(amount, 'mwei'); // Convert amount to Wei
-
-      try {
-        await usdcContract.methods.approve(contractAddress, amountInWei).send({ from: accounts[0] });
-        await contract.methods.stake(amountInWei).send({ from: accounts[0] });
-        document.getElementById('stake-status').innerText = 'Stake successful!';
-        await loadBalances(); // Refresh balances after staking
-      } catch (error) {
-        console.error('Stake failed', error);
-        document.getElementById('stake-status').innerText = 'Stake failed!';
-      }
-    };
-
-    document.getElementById('withdraw-btn').onclick = async function () {
-      const amount = document.getElementById('withdraw-amount').value;
-      const amountInWei = web3.utils.toWei(amount, 'mwei'); // Convert amount to Wei
-
-      try {
-        await contract.methods.withdraw(amountInWei).send({ from: accounts[0] });
-        document.getElementById('withdraw-status').innerText = 'Withdraw successful!';
-        await loadBalances(); // Refresh balances after withdrawal
-      } catch (error) {
-        console.error('Withdraw failed', error);
-        document.getElementById('withdraw-status').innerText = 'Withdraw failed!';
-      }
-    };
-
-    document.getElementById('claim-reward-btn').onclick = async function () {
-      try {
-        await contract.methods.claimReward().send({ from: accounts[0] });
-        document.getElementById('claim-status').innerText = 'Claim successful!';
-        await loadBalances(); // Refresh balances after claiming reward
-      } catch (error) {
-        console.error('Claim failed', error);
-        document.getElementById('claim-status').innerText = 'Claim failed!';
-      }
-    };
-  </script>
-</body>
-</html>
+    async function stakeTokens() {
+      const amount = document.getElementById('stake-amount
